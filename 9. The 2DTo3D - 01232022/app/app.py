@@ -15,7 +15,9 @@ def convert_image_to_coords(image_name, tolerance, min_size, contour_noise_toler
     input_path = select_floor_plans(image_name)
 
     output_path = "grasshopper/generated floor plans/erosion.jpg"
-    input_path_2 = os.path.join("C:/Users/yanga/YZ_startup/"+input_path)
+    # C:/Users/[your user name]/subfolder/
+    input_path_2 = os.path.join(
+        "[enter the path you store your floor plan images]"+input_path)
 
     filter_image(input_path, output_path, int(tolerance), int(min_size))
     contour_coords = get_contours(output_path, int(contour_noise_tolerance))
