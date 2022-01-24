@@ -1,0 +1,39 @@
+Metadata-Version: 2.1
+Name: rhino3dm
+Version: 0.13.0
+Summary: Python library based on OpenNURBS with a RhinoCommon style
+Home-page: UNKNOWN
+Author: Robert McNeel & Associates
+Author-email: steve@mcneel.com
+License: UNKNOWN
+Platform: UNKNOWN
+Description-Content-Type: text/markdown
+
+# rhino3dm.py
+CPython package based on OpenNURBS with a RhinoCommon style
+
+Project Homepage at: https://github.com/mcneel/rhino3dm
+
+### Supported platforms
+* Python27 - Windows (32 and 64 bit)
+* Python37 - Windows (32 and 64 bit)
+* Python27 - OSX (installed through homebrew)
+* Python37 - OSX (installed through homebrew)
+* Linux and other python versions are supported through source distributions
+
+## Test
+
+* start `python`
+```
+from rhino3dm import *
+import requests  # pip install requests
+
+req = requests.get("https://files.mcneel.com/TEST/Rhino Logo.3dm")
+model = File3dm.FromByteArray(req.content)
+for obj in model.Objects:
+    geometry = obj.Geometry
+    bbox = geometry.GetBoundingBox()
+    print("{}, {}".format(bbox.Min, bbox.Max))
+```
+
+
