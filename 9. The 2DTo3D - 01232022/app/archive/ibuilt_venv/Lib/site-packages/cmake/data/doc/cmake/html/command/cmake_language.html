@@ -1,0 +1,216 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+  <title>cmake_language &mdash; CMake 3.18.2 Documentation</title>
+
+    <link rel="stylesheet" href="../_static/cmake.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <link rel="shortcut icon" href="../_static/cmake-favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="cmake_minimum_required" href="cmake_minimum_required.html" />
+    <link rel="prev" title="cmake_host_system_information" href="cmake_host_system_information.html" />
+  
+ 
+
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="cmake_minimum_required.html" title="cmake_minimum_required"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="cmake_host_system_information.html" title="cmake_host_system_information"
+             accesskey="P">previous</a> |</li>
+  <li>
+    <img src="../_static/cmake-logo-16.png" alt=""
+         style="vertical-align: middle; margin-top: -2px" />
+  </li>
+  <li>
+    <a href="https://cmake.org/">CMake</a> &#187;
+  </li>
+  <li>
+    <a href="../index.html">3.18.2 Documentation</a> &#187;
+  </li>
+
+          <li class="nav-item nav-item-1"><a href="../manual/cmake-commands.7.html" accesskey="U">cmake-commands(7)</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="cmake-language">
+<span id="command:cmake_language"></span><h1>cmake_language<a class="headerlink" href="#cmake-language" title="Permalink to this headline">¶</a></h1>
+<p>Call meta-operations on CMake commands.</p>
+<div class="section" id="synopsis">
+<h2>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h2>
+<pre class="literal-block">cmake_language(<a class="reference internal" href="#call">CALL</a> &lt;command&gt; [&lt;args&gt;...])
+cmake_language(<a class="reference internal" href="#eval">EVAL</a> CODE &lt;code&gt;...)</pre>
+</div>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>This command will call meta-operations on built-in CMake commands or
+those created via the <span class="target" id="index-0-command:macro"></span><a class="reference internal" href="macro.html#command:macro" title="macro"><code class="xref cmake cmake-command docutils literal notranslate"><span class="pre">macro()</span></code></a> or <span class="target" id="index-0-command:function"></span><a class="reference internal" href="function.html#command:function" title="function"><code class="xref cmake cmake-command docutils literal notranslate"><span class="pre">function()</span></code></a> commands.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmake_language</span></code> does not introduce a new variable or policy scope.</p>
+</div>
+<div class="section" id="calling-commands">
+<h2>Calling Commands<a class="headerlink" href="#calling-commands" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-cmake notranslate" id="call"><div class="highlight"><pre><span></span><span class="nf">cmake_language(</span><span class="no">CALL</span><span class="w"> </span><span class="nv">&lt;command&gt;</span><span class="w"> </span><span class="p">[</span><span class="nv">&lt;args&gt;...</span><span class="p">]</span><span class="nf">)</span><span class="w"></span>
+</pre></div>
+</div>
+<p>Calls the named <code class="docutils literal notranslate"><span class="pre">&lt;command&gt;</span></code> with the given arguments (if any).
+For example, the code:</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nf">set(</span><span class="nb">message_command</span><span class="w"> </span><span class="s">&quot;message&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="nf">cmake_language(</span><span class="no">CALL</span><span class="w"> </span><span class="o">${</span><span class="nt">message_command</span><span class="o">}</span><span class="w"> </span><span class="no">STATUS</span><span class="w"> </span><span class="s">&quot;Hello World!&quot;</span><span class="nf">)</span><span class="w"></span>
+</pre></div>
+</div>
+<p>is equivalent to</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nf">message(</span><span class="no">STATUS</span><span class="w"> </span><span class="s">&quot;Hello World!&quot;</span><span class="nf">)</span><span class="w"></span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To ensure consistency of the code, the following commands are not allowed:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">if</span></code> / <code class="docutils literal notranslate"><span class="pre">elseif</span></code> / <code class="docutils literal notranslate"><span class="pre">else</span></code> / <code class="docutils literal notranslate"><span class="pre">endif</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">while</span></code> / <code class="docutils literal notranslate"><span class="pre">endwhile</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">foreach</span></code> / <code class="docutils literal notranslate"><span class="pre">endforeach</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">function</span></code> / <code class="docutils literal notranslate"><span class="pre">endfunction</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">macro</span></code> / <code class="docutils literal notranslate"><span class="pre">endmacro</span></code></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="evaluating-code">
+<h2>Evaluating Code<a class="headerlink" href="#evaluating-code" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-cmake notranslate" id="eval"><div class="highlight"><pre><span></span><span class="nf">cmake_language(</span><span class="no">EVAL</span><span class="w"> </span><span class="no">CODE</span><span class="w"> </span><span class="nv">&lt;code&gt;...</span><span class="nf">)</span><span class="w"></span>
+</pre></div>
+</div>
+<p>Evaluates the <code class="docutils literal notranslate"><span class="pre">&lt;code&gt;...</span></code> as CMake code.</p>
+<p>For example, the code:</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nf">set(</span><span class="no">A</span><span class="w"> </span><span class="no">TRUE</span><span class="nf">)</span><span class="w"></span>
+<span class="nf">set(</span><span class="no">B</span><span class="w"> </span><span class="no">TRUE</span><span class="nf">)</span><span class="w"></span>
+<span class="nf">set(</span><span class="no">C</span><span class="w"> </span><span class="no">TRUE</span><span class="nf">)</span><span class="w"></span>
+<span class="nf">set(</span><span class="nb">condition</span><span class="w"> </span><span class="s">&quot;(A AND B) OR C&quot;</span><span class="nf">)</span><span class="w"></span>
+
+<span class="nf">cmake_language(</span><span class="no">EVAL</span><span class="w"> </span><span class="no">CODE</span><span class="w"> </span><span class="s">&quot;</span>
+<span class="s">  if (${condition})</span>
+<span class="s">    message(STATUS TRUE)</span>
+<span class="s">  else()</span>
+<span class="s">    message(STATUS FALSE)</span>
+<span class="s">  endif()&quot;</span><span class="w"></span>
+<span class="nf">)</span><span class="w"></span>
+</pre></div>
+</div>
+<p>is equivalent to</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nf">set(</span><span class="no">A</span><span class="w"> </span><span class="no">TRUE</span><span class="nf">)</span><span class="w"></span>
+<span class="nf">set(</span><span class="no">B</span><span class="w"> </span><span class="no">TRUE</span><span class="nf">)</span><span class="w"></span>
+<span class="nf">set(</span><span class="no">C</span><span class="w"> </span><span class="no">TRUE</span><span class="nf">)</span><span class="w"></span>
+<span class="nf">set(</span><span class="nb">condition</span><span class="w"> </span><span class="s">&quot;(A AND B) OR C&quot;</span><span class="nf">)</span><span class="w"></span>
+
+<span class="nf">file(</span><span class="no">WRITE</span><span class="w"> </span><span class="o">${</span><span class="nt">CMAKE_CURRENT_BINARY_DIR</span><span class="o">}</span><span class="na">/eval.cmake</span><span class="w"> </span><span class="s">&quot;</span>
+<span class="s">  if (${condition})</span>
+<span class="s">    message(STATUS TRUE)</span>
+<span class="s">  else()</span>
+<span class="s">    message(STATUS FALSE)</span>
+<span class="s">  endif()&quot;</span><span class="w"></span>
+<span class="nf">)</span><span class="w"></span>
+
+<span class="nf">include(</span><span class="o">${</span><span class="nt">CMAKE_CURRENT_BINARY_DIR</span><span class="o">}</span><span class="na">/eval.cmake</span><span class="nf">)</span><span class="w"></span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">cmake_language</a><ul>
+<li><a class="reference internal" href="#synopsis">Synopsis</a></li>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#calling-commands">Calling Commands</a></li>
+<li><a class="reference internal" href="#evaluating-code">Evaluating Code</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cmake_host_system_information.html"
+                        title="previous chapter">cmake_host_system_information</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="cmake_minimum_required.html"
+                        title="next chapter">cmake_minimum_required</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/command/cmake_language.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="cmake_minimum_required.html" title="cmake_minimum_required"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="cmake_host_system_information.html" title="cmake_host_system_information"
+             >previous</a> |</li>
+  <li>
+    <img src="../_static/cmake-logo-16.png" alt=""
+         style="vertical-align: middle; margin-top: -2px" />
+  </li>
+  <li>
+    <a href="https://cmake.org/">CMake</a> &#187;
+  </li>
+  <li>
+    <a href="../index.html">3.18.2 Documentation</a> &#187;
+  </li>
+
+          <li class="nav-item nav-item-1"><a href="../manual/cmake-commands.7.html" >cmake-commands(7)</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2000-2020 Kitware, Inc. and Contributors.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+    </div>
+  </body>
+</html>
