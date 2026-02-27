@@ -19,7 +19,9 @@ import {
     cos,
     smoothstep, //soft transition between 0 and 1
     clamp, //clamp(x, min, max): restrict x to the range [min, max].
-    uniform
+    uniform,
+    step,
+    fract
 
 } from "three/tsl"
 
@@ -76,7 +78,12 @@ export default function NegatingVector() {
       vignetteInner: 0.2,
       blue: 0.65,
       contrastScale: 0.35,
-      contrastLift: 0.08
+      contrastLift: 0.08,
+      lineLength: 0.25,
+      lineThickness: 0.01,
+      lineOpacity: 1.0,
+      fieldColorOpacity: 1.0,
+      radius: 0.25,
     };
 
     // Uniforms are the shader-side values driven by GUI controls.
@@ -86,6 +93,11 @@ export default function NegatingVector() {
     const blueU = uniform(params.blue);
     const contrastScaleU = uniform(params.contrastScale);
     const contrastLiftU = uniform(params.contrastLift);
+    const lineLengthU = uniform(params.lineLength);
+    const lineThicknessU = uniform(params.lineThickness);
+    const lineOpacityU = uniform(params.lineOpacity);
+    const fieldColorOpacityU = uniform(params.fieldColorOpacity);
+    const radiusU = uniform(params.radius);
 
     const controls = inspector.createParameters("NegatingVector");
     controls.add(params, "speed", 0.1, 3.0, 0.01).onChange((value) => {
@@ -105,6 +117,21 @@ export default function NegatingVector() {
     });
     controls.add(params, "contrastLift", 0.0, 0.3, 0.01).onChange((value) => {
       contrastLiftU.value = value;
+    });
+    controls.add(params, "lineLength", 0.0, 0.25, 0.001).onChange((value) => {
+      lineLengthU.value = value;
+    });
+    controls.add(params, "lineThickness", 0.002, 0.01, 0.001).onChange((value) => {
+      lineThicknessU.value = value;
+    });
+    controls.add(params, "lineOpacity", 0.0, 1.0, 0.01).onChange((value) => {
+      lineOpacityU.value = value;
+    });
+    controls.add(params, "fieldColorOpacity", 0.0, 1.0, 0.01).onChange((value) => {
+      fieldColorOpacityU.value = value;
+    });
+    controls.add(params, "radius", 0.0, 0.25, 0.001).onChange((value) => {
+      radiusU.value = value;
     });
 
     // Rotate p continuously over time so direction changes smoothly.
@@ -143,9 +170,76 @@ export default function NegatingVector() {
     // Blend edges to white (vignette low) and keep center as baseColor (vignette high).
     const white = vec3(1.0, 1.0, 1.0);
     const invVignette = float(1.0).sub(vignette);
-    const color = white.mul(invVignette).add(baseColor.mul(vignette)).add(contrast.mul(contrastLiftU));
+    const rawFieldColor = white.mul(invVignette)
+    .add(baseColor.mul(vignette))
+    .add(contrast.mul(contrastLiftU));
+    const fieldColor = white.mul(float(1.0).sub(fieldColorOpacityU))
+    .add(rawFieldColor.mul(fieldColorOpacityU));
 
-    material.colorNode = color;
+
+    // Overlay a single thin rotating vector line anchored at the center.
+    const rayDir = vec2(c, s.negate());
+    const proj = p.x.mul(rayDir.x).add(p.y.mul(rayDir.y));
+    const clampedProj = clamp(proj, 0.0, lineLengthU);
+    const closest = rayDir.mul(clampedProj);
+    const distToLine = length(p.sub(closest));
+    const soft = float(0.0003);
+    const lineMask = float(1.0)
+      .sub(smoothstep(lineThicknessU, lineThicknessU.add(soft), distToLine))
+      .mul(lineOpacityU)
+      .mul(vignette);
+    const lineColor = vec3(0.0, 0.0, 0.0);
+    const color = fieldColor.mul(float(1.0).sub(lineMask)).add(lineColor.mul(lineMask));
+
+    // Draw a sphere marker at the ray tip (instead of screen center).
+    const tip = rayDir.mul(lineLengthU);
+    const distToTip = length(p.sub(tip));
+    const edge = 0.003;
+    const tipSphereMask = float(1.0).sub(smoothstep(radiusU, radiusU.add(edge), distToTip));
+
+    // new center sphere
+    const distToCenter = length(p);
+    const centerSphereMask = float(1.0).sub(smoothstep(radiusU, radiusU.add(edge), distToCenter));
+
+    // combine both spheres (clamp to [0,1])
+    const sphereMask = clamp(tipSphereMask.add(centerSphereMask), 0.0, 1.0);
+
+    // blend as before
+    const sphereColor = vec3(0.0, 0.0, 0.0);
+    const colorWithSphere = color.mul(float(1.0).sub(sphereMask)).add(sphereColor.mul(sphereMask));
+
+    // Opposite ray direction (backward from center)
+    const oppDir = rayDir.negate();
+
+    // Finite segment [0 -> oppDir * lineLengthU]
+    const oppProj = p.x.mul(oppDir.x).add(p.y.mul(oppDir.y));
+    const oppClampedProj = clamp(oppProj, 0.0, lineLengthU);
+    const oppClosest = oppDir.mul(oppClampedProj);
+    const oppDistToLine = length(p.sub(oppClosest));
+
+    // Base line mask (same thickness softness as main line)
+    const oppBaseMask = float(1.0)
+      .sub(smoothstep(lineThicknessU, lineThicknessU.add(soft), oppDistToLine));
+
+    // Dash pattern along the segment (0..lineLengthU), repeated by dashCount
+    const dashCount = lineLengthU.div(0.025);
+    const dashDuty = float(0.5); // 0.5 = equal dash/gap
+    const dashPhase = oppClampedProj.div(lineLengthU).mul(dashCount);
+    const dashMask = step(fract(dashPhase), dashDuty);
+
+    // Final dashed opposite-line mask
+    const oppLineMask = oppBaseMask
+      .mul(dashMask)
+      .mul(lineOpacityU)
+      .mul(vignette);
+
+    // Blend (example dashed gray)
+    const oppLineColor = vec3(0.0);
+    const colorWithOppDash = colorWithSphere
+      .mul(float(1.0).sub(oppLineMask))
+      .add(oppLineColor.mul(oppLineMask));
+
+    material.colorNode = colorWithOppDash;
 
     const resize = () => {
       // If host div disappeared (rare in React transitions), do nothing.
