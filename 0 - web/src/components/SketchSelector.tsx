@@ -23,7 +23,8 @@ function toDisplayName(name: string) {
 }
 
 export default function SketchSelector({ sketchNames }: SketchSelectorProps) {
-  const [selectedSketch, setSelectedSketch] = useState(sketchNames[0] ?? "");
+
+  const [selectedSketch, setSelectedSketch] = useState(sketchNames.filter(name => name.toLocaleLowerCase().includes("portalscene"))[0]?? "");
 
   const SelectedSketch = useMemo(() => {
     if (!selectedSketch) return null;

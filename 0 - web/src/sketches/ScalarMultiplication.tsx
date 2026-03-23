@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-
 // WebGPU renderer (Three.js)
 import { WebGPURenderer, PMREMGenerator } from "three/webgpu";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -19,6 +18,7 @@ import {
   length,
   vec2,
   vec3,
+  vec4,
   add,
   mul,
   sub,
@@ -28,13 +28,28 @@ import {
   max,
   uniform,
   time,
+  fract,
+  min,
+  sqrt,
+  smoothstep,
+  mix,
 } from "three/tsl";
 
 export default function ScalarMultiplyDisplacement() {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const params = {
+    pScale: 1.0,
+    nMul: 1.0,
+    k: 0.3,
+    frequency: 10.0,
+    speed: 3.0,
+    transparent: 1.0,
+  };
+
   // Which formula letters are currently highlighted red
   const [highlighted, setHighlighted] = useState<string | null>(null);
+  const [highlightedValue, setHighlightedValue] = useState<number | null>(params.pScale);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -58,7 +73,7 @@ export default function ScalarMultiplyDisplacement() {
     camera.position.set(0, 2.2, 4.5);
 
     // --- Renderer (WebGPU) ---
-    const renderer = new WebGPURenderer({ antialias: true });
+    const renderer = new WebGPURenderer({ antialias: true, requiredLimits: { maxStorageBuffersInVertexStage: 1 } });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(
       containerRef.current.clientWidth,
@@ -106,15 +121,9 @@ export default function ScalarMultiplyDisplacement() {
     const kU = uniform(0.3);
     const frequencyU = uniform(10.0);
     const speedU = uniform(3.0);
+    const transparentU = uniform(1.0);
 
     // --- Inspector controls ---
-    const params = {
-      pScale: 1.0,
-      nMul: 1.0,
-      k: 0.3,
-      frequency: 10.0,
-      speed: 3.0,
-    };
 
     const iControls = inspector.createParameters("ScalarMultiplication");
 
@@ -124,6 +133,7 @@ export default function ScalarMultiplyDisplacement() {
       .onChange((v: number) => {
         mesh.scale.setScalar(v);
         setHighlighted("p");
+        setHighlightedValue(v);
       });
 
     iControls
@@ -132,6 +142,7 @@ export default function ScalarMultiplyDisplacement() {
       .onChange((v: number) => {
         nMulU.value = v;
         setHighlighted("n");
+        setHighlightedValue(v);
       });
 
     iControls
@@ -140,6 +151,7 @@ export default function ScalarMultiplyDisplacement() {
       .onChange((v: number) => {
         kU.value = v;
         setHighlighted("k");
+        setHighlightedValue(v);
       });
 
     iControls
@@ -148,10 +160,20 @@ export default function ScalarMultiplyDisplacement() {
       .onChange((v: number) => {
         frequencyU.value = v;
         setHighlighted("ripple");
+        setHighlightedValue(v);
+      });
+    
+    iControls
+      .add(params, "transparent", 0.0, 1.0, 0.01)
+      .name("transparent — transparency")
+      .onChange((v: number) => {
+        transparentU.value = v;
+        setHighlighted("transparent");
+        setHighlightedValue(v);
       });
 
     // --- TSL Material ---
-    const mat = new MeshStandardNodeMaterial({ color: "#f00" });
+    const mat = new MeshStandardNodeMaterial({ color: "#f00", transparent: true });
 
     // ======= Chapter 5.6: Scalar multiplication in vertex shader =======
     // p' = p + n * (k * ripple)
@@ -161,17 +183,17 @@ export default function ScalarMultiplyDisplacement() {
     const n = normalLocal;
 
     const xz = vec2(p.x, p.z);
-    const d = length(xz);
+    const d = length(xz); // distance from world center 0,0,0
 
-    const phase = sub(mul(d, frequencyU), mul(t, speedU));
-    const ripple = sin(phase);
+    const phase = sub(mul(d, frequencyU), mul(t, speedU)); // phase of the ripple (used for the normal calculation) in the direction of the x and z axes (used for the normal calculation)
+    const ripple = sin(phase); // ripple value (sin of the phase) in the direction of the x and z axes (used for the normal calculation)
 
-    const k = kU;
+    const k = kU; // scalar multiplier (used for the normal calculation)
 
-    const scalar = mul(k, ripple);
+    const scalar = mul(k, ripple); // scalar multiplier * ripple (used for the normal calculation)
 
     // p' = p + n * nMul * (k * ripple)
-    const displaced = add(p, mul(n, mul(nMulU, scalar)));
+    const displaced = add(p, mul(n, mul(nMulU, scalar))); // displaced position (used for the normal calculation)
     mat.positionNode = displaced;
 
     // Analytically computed surface normal for the displaced height field.
@@ -179,11 +201,35 @@ export default function ScalarMultiplyDisplacement() {
     // ∂y/∂x = nMul * k * cos(phase) * frequency * (x / d)
     // ∂y/∂z = nMul * k * cos(phase) * frequency * (z / d)
     // Surface normal (unnormalized) = (-∂y/∂x, 1, -∂y/∂z)
-    const safeD = max(d, 0.001);
-    const cosPhase = cos(phase);
-    const dfdx = mul(nMulU, mul(k, mul(cosPhase, mul(frequencyU, div(p.x, safeD)))));
-    const dfdz = mul(nMulU, mul(k, mul(cosPhase, mul(frequencyU, div(p.z, safeD)))));
+    const safeD = max(d, 0.001); // clamp to avoid division by zero at center
+    const cosPhase = cos(phase); // cosine of the phase of the ripple (used for the normal calculation) in the direction of the x and z axes (used for the normal calculation)
+    const dfdx = mul(nMulU, mul(k, mul(cosPhase, mul(frequencyU, div(p.x, safeD))))); // partial derivative of y with respect to x
+    const dfdz = mul(nMulU, mul(k, mul(cosPhase, mul(frequencyU, div(p.z, safeD))))); // partial derivative of y with respect to z
     mat.normalNode = normalize(vec3(negate(dfdx), 1, negate(dfdz)));
+
+    mat.opacityNode = transparentU;
+
+    // --- 10×10 dot grid drawn in the fragment shader ---
+    // positionLocal.xz in the fragment stage is the interpolated PRE-displacement XZ,
+    // which is exactly the regular grid layout we want to measure against.
+    // spacing = 4 / (10 - 1) = 4/9 world units per cell
+    const dotSpacing = div(2.0, 2.0);
+
+    // Fractional position within cell [0, 1)
+    const cellFracX = fract(div(add(p.x, 2.0), dotSpacing));
+    const cellFracZ = fract(div(add(p.z, 2.0), dotSpacing));
+
+    // Distance to nearest grid line in each axis, in cell-space [0, 0.5]
+    const dcx = min(cellFracX, sub(1.0, cellFracX));
+    const dcz = min(cellFracZ, sub(1.0, cellFracZ));
+
+    // Circular distance from nearest grid point (cell-space, max = ~0.707)
+    const cellDist = sqrt(add(mul(dcx, dcx), mul(dcz, dcz)));
+
+    // Smooth circular mask: 1 inside dot, 0 outside
+    const dotMask = sub(1.0, smoothstep(0.18, 0.19, cellDist));
+
+    mat.colorNode = mix(vec4(1, 0, 0, 0), vec4(0, 0, 0, 1), dotMask);
 
     mat.envMapIntensity = 0.65;
     mat.roughness = 0.35;
@@ -252,28 +298,18 @@ export default function ScalarMultiplyDisplacement() {
       ? { color: "#e00", transition: "color 0.08s", fontSize: 18 }
       : { color: "inherit", transition: "color 0.6s", fontSize: 14 };
 
+  const hlValue = (v: string): React.CSSProperties =>
+    highlighted === v
+      ? { color: "#e00", transition: "color 0.08s", fontSize: 12 }
+      : { color: "white", visibility: "hidden", transition: "color 0.6s", fontSize: 14 };
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100vh", overflow: "hidden", borderRadius: 12 }}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
 
       {/* Formula overlay */}
       <div
-        style={{
-          position: "absolute",
-          bottom: 38,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "transparent",
-          backdropFilter: "blur(8px)",
-          borderRadius: 10,
-          padding: "10px 24px",
-          fontFamily: "monospace",
-          fontSize: 14,
-          fontWeight: 700,
-          pointerEvents: "none",
-          userSelect: "none",
-          whiteSpace: "nowrap",
-        }}
+        className="absolute bottom-35 left-1/2 transform -translate-x-1/2 bg-transparent backdrop-blur-8px border-radius-10px p-10px font-mono font-bold pointer-events-none user-select-none whitespace-nowrap"
       >
         <span style={{ color: "#888" }}>p</span>
         <span style={{ color: "#888" }}>&apos; = </span>
@@ -285,6 +321,20 @@ export default function ScalarMultiplyDisplacement() {
         <span style={{ color: "#888" }}> × </span>
         <span style={hl("ripple")}>ripple</span>
         <span style={{ color: "#888" }}>)</span>
+      </div>
+      <div
+        className="absolute bottom-25 left-1/2 transform -translate-x-1/2 bg-transparent backdrop-blur-8px border-radius-10px p-10px font-mono font-bold pointer-events-none user-select-none whitespace-nowrap"
+      >
+        <span style={{ color: "#888", visibility: "hidden" }}>p</span>
+        <span style={{ color: "#888", visibility: "hidden" }}>&apos; = </span>
+        <span style={hlValue("p")}>{highlightedValue}</span>
+        <span style={{ color: "#888", visibility: "hidden" }}> + </span>
+        <span style={hlValue("n")}>{highlightedValue}</span>
+        <span style={{ color: "#888", visibility: "hidden" }}> × (</span>
+        <span style={hlValue("k")}>{highlightedValue}</span>
+        <span style={{ color: "#888", visibility: "hidden" }}> × </span>
+        <span style={hlValue("ripple")}>{highlightedValue}</span>
+        <span style={{ color: "#888", visibility: "hidden" }}>)</span>
       </div>
     </div>
   );
