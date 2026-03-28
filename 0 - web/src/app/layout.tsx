@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import StatsMonitor from "@/components/StatsMonitor";
 
 export const metadata: Metadata = {
   title: "Simple Sketches",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <StatsMonitor />
+        {children}
+      </body>
     </html>
   );
 }
