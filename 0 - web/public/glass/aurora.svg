@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1026" />
+      <stop offset="100%" stop-color="#182848" />
+    </linearGradient>
+    <linearGradient id="band1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00ffa2" stop-opacity="0" />
+      <stop offset="50%" stop-color="#00ffa2" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#00ffa2" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="band2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7c4dff" stop-opacity="0" />
+      <stop offset="50%" stop-color="#7c4dff" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#7c4dff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#sky)" />
+  <g>
+    <ellipse cx="200" cy="120" r="3" fill="#ffffff" opacity="0.8" />
+    <ellipse cx="620" cy="80" r="2" fill="#ffffff" opacity="0.6" />
+    <ellipse cx="720" cy="200" r="2.5" fill="#ffffff" opacity="0.7" />
+    <ellipse cx="90" cy="260" r="2" fill="#ffffff" opacity="0.5" />
+    <ellipse cx="420" cy="60" r="2" fill="#ffffff" opacity="0.6" />
+  </g>
+  <path d="M0,260 C150,180 300,340 450,240 C600,150 700,260 800,200 L800,420 C650,340 550,460 400,380 C250,300 150,420 0,360 Z" fill="url(#band1)" />
+  <path d="M0,340 C180,420 320,240 480,320 C620,390 700,300 800,340 L800,520 C650,460 560,540 420,470 C260,390 140,520 0,470 Z" fill="url(#band2)" />
+  <rect width="800" height="600" fill="#050818" opacity="0.15" />
+</svg>

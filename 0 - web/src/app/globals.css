@@ -131,3 +131,17 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Slow background pan for the /glass editor preview (GlassPanel `animateBackground` prop). */
+@keyframes glass-pan-bg {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+.glass-pan-bg {
+  animation: glass-pan-bg 40s linear infinite alternate;
+}
