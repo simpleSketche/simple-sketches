@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 import {
@@ -25,6 +25,14 @@ function toDisplayName(name: string) {
 export default function SketchSelector({ sketchNames }: SketchSelectorProps) {
 
   const [selectedSketch, setSelectedSketch] = useState(sketchNames.filter(name => name.toLocaleLowerCase().includes("portalscene"))[0]?? "");
+
+  // `?sketch=GlassSamples` opens that sketch directly. Only the browser knows the address, so the
+  // page hydrates with the default sketch, as the server rendered it, and switches here before the
+  // default has had a chance to load.
+  useLayoutEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("sketch");
+    if (requested && sketchNames.includes(requested)) setSelectedSketch(requested);
+  }, [sketchNames]);
 
   const SelectedSketch = useMemo(() => {
     if (!selectedSketch) return null;

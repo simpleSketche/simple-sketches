@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f3f4f7" />
+      <stop offset="100%" stop-color="#d8dbe2" />
+    </linearGradient>
+    <radialGradient id="glaze" cx="62%" cy="34%" r="75%">
+      <stop offset="0%" stop-color="#f4665a" />
+      <stop offset="45%" stop-color="#e0402f" />
+      <stop offset="100%" stop-color="#a8231c" />
+    </radialGradient>
+    <linearGradient id="neck" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4f0d10" />
+      <stop offset="55%" stop-color="#8e1c1d" />
+      <stop offset="100%" stop-color="#5c1012" />
+    </linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="9" />
+    </filter>
+    <filter id="softer" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+    <filter id="crisp" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.2" />
+    </filter>
+    <path id="body" d="M150 264 C96 242 98 122 190 96 L284 96 C376 122 378 242 324 264 Q237 280 150 264 Z" />
+    <clipPath id="bodyClip">
+      <use href="#body" />
+    </clipPath>
+  </defs>
+
+  <!-- Backdrop cloth with a few soft folds. -->
+  <rect width="400" height="300" fill="url(#cloth)" />
+  <g filter="url(#soft)" fill="none" stroke-linecap="round">
+    <path d="M-20 50 C70 20 150 110 250 60 S380 40 430 80" stroke="#ffffff" stroke-width="30" opacity="0.8" />
+    <path d="M-20 130 C40 100 90 170 150 140" stroke="#c5c9d3" stroke-width="22" opacity="0.7" />
+    <path d="M300 20 C330 80 360 110 420 120" stroke="#c9ccd5" stroke-width="20" opacity="0.7" />
+    <path d="M-20 230 C60 200 110 250 180 236" stroke="#ffffff" stroke-width="26" opacity="0.8" />
+    <path d="M330 200 C360 190 380 215 420 205" stroke="#c9ccd5" stroke-width="18" opacity="0.6" />
+  </g>
+
+  <!-- Shadow pooling under and to the left of the vase. -->
+  <ellipse cx="200" cy="268" rx="150" ry="18" fill="#2a2630" opacity="0.28" filter="url(#soft)" />
+  <ellipse cx="240" cy="271" rx="104" ry="11" fill="#150c10" opacity="0.8" filter="url(#softer)" />
+
+  <!-- Neck and flared lip. -->
+  <path
+    d="M192 102 C206 86 202 66 178 46 C168 38 172 28 185 30 C214 36 238 43 260 39 C278 35 296 26 310 30 C321 34 317 43 307 49 C285 63 275 85 286 102 Z"
+    fill="url(#neck)"
+  />
+  <path
+    d="M178 46 C168 38 172 28 185 30 C214 36 238 43 260 39 C278 35 296 26 310 30 C321 34 317 43 307 49"
+    fill="none"
+    stroke="#c79a45"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
+  <ellipse cx="266" cy="70" rx="5" ry="11" fill="#ffffff" opacity="0.5" filter="url(#crisp)" />
+
+  <!-- Body: glossy glaze above, matte band below. -->
+  <use href="#body" fill="url(#glaze)" />
+  <g clip-path="url(#bodyClip)">
+    <rect x="80" y="206" width="320" height="90" fill="#8d1d19" opacity="0.38" />
+    <path d="M90 206 Q237 216 390 206" fill="none" stroke="#7d1815" stroke-width="1.5" opacity="0.6" />
+    <ellipse cx="282" cy="150" rx="46" ry="30" fill="#ffffff" opacity="0.22" filter="url(#soft)" />
+    <ellipse cx="150" cy="190" rx="30" ry="60" fill="#5a0f10" opacity="0.35" filter="url(#soft)" />
+  </g>
+  <ellipse cx="281" cy="149" rx="14" ry="8" fill="#ffffff" opacity="0.95" filter="url(#crisp)" transform="rotate(-24 281 149)" />
+  <ellipse cx="305" cy="176" rx="4" ry="2.5" fill="#ffffff" opacity="0.7" filter="url(#crisp)" />
+</svg>
