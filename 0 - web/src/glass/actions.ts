@@ -4,7 +4,15 @@ import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { DEFAULT_GLASS_PARAMS, GLASS_PARAM_RANGES, RIB_ORIENTATIONS, type GlassParams } from "./types";
+import {
+  DEFAULT_GLASS_PARAMS,
+  GLASS_COLOR_PARAMS,
+  GLASS_PARAM_RANGES,
+  NOISE_TYPES,
+  RIB_ORIENTATIONS,
+  type GlassNumericParam,
+  type GlassParams,
+} from "./types";
 
 export type CreateExperimentResult = { ok: true; name: string } | { ok: false; error: string };
 
@@ -17,9 +25,13 @@ function toPascalCase(input: string): string {
   return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join("");
 }
 
-function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
+/** Clamps to [min,max] and snaps to the field's slider step, so no value can land off-grid. */
+function clampNumber(value: unknown, min: number, max: number, step: number, fallback: number): number {
   const num = typeof value === "number" && Number.isFinite(value) ? value : fallback;
-  return Math.min(max, Math.max(min, num));
+  const clamped = Math.min(max, Math.max(min, num));
+  const snapped = Math.round(clamped / step) * step;
+  const decimals = (String(step).split(".")[1] ?? "").length;
+  return Number(Math.min(max, Math.max(min, snapped)).toFixed(decimals));
 }
 
 function sanitizeBackgroundImage(value: unknown): string {
@@ -32,78 +44,34 @@ function sanitizeBackgroundImage(value: unknown): string {
   return DEFAULT_GLASS_PARAMS.backgroundImage;
 }
 
-/** Validates and clamps every field to its declared range/enum. Never trusts caller input. */
+/**
+ * Validates and clamps every field to its declared range/enum. Never trusts caller input.
+ * Numeric fields are driven by GLASS_PARAM_RANGES, so a parameter added to the type and the
+ * editor is clamped here automatically rather than silently passing through unvalidated.
+ */
 function sanitizeParams(input: Partial<GlassParams>, name: string): GlassParams {
+  const numeric = {} as Record<GlassNumericParam, number>;
+  for (const key of Object.keys(GLASS_PARAM_RANGES) as GlassNumericParam[]) {
+    const { min, max, step = 1 } = GLASS_PARAM_RANGES[key];
+    numeric[key] = clampNumber(input[key], min, max, step, DEFAULT_GLASS_PARAMS[key]);
+  }
+
+  const colors = {} as Record<(typeof GLASS_COLOR_PARAMS)[number], string>;
+  for (const key of GLASS_COLOR_PARAMS) {
+    const value = input[key];
+    colors[key] = typeof value === "string" && HEX_COLOR_PATTERN.test(value) ? value : DEFAULT_GLASS_PARAMS[key];
+  }
+
   return {
+    ...numeric,
+    ...colors,
     name,
-    width: clampNumber(input.width, GLASS_PARAM_RANGES.width.min, GLASS_PARAM_RANGES.width.max, DEFAULT_GLASS_PARAMS.width),
-    height: clampNumber(input.height, GLASS_PARAM_RANGES.height.min, GLASS_PARAM_RANGES.height.max, DEFAULT_GLASS_PARAMS.height),
-    borderRadius: clampNumber(
-      input.borderRadius,
-      GLASS_PARAM_RANGES.borderRadius.min,
-      GLASS_PARAM_RANGES.borderRadius.max,
-      DEFAULT_GLASS_PARAMS.borderRadius
-    ),
-    frost: clampNumber(input.frost, GLASS_PARAM_RANGES.frost.min, GLASS_PARAM_RANGES.frost.max, DEFAULT_GLASS_PARAMS.frost),
-    refraction: clampNumber(
-      input.refraction,
-      GLASS_PARAM_RANGES.refraction.min,
-      GLASS_PARAM_RANGES.refraction.max,
-      DEFAULT_GLASS_PARAMS.refraction
-    ),
-    reflection: clampNumber(
-      input.reflection,
-      GLASS_PARAM_RANGES.reflection.min,
-      GLASS_PARAM_RANGES.reflection.max,
-      DEFAULT_GLASS_PARAMS.reflection
-    ),
-    lightAzimuth: clampNumber(
-      input.lightAzimuth,
-      GLASS_PARAM_RANGES.lightAzimuth.min,
-      GLASS_PARAM_RANGES.lightAzimuth.max,
-      DEFAULT_GLASS_PARAMS.lightAzimuth
-    ),
-    lightElevation: clampNumber(
-      input.lightElevation,
-      GLASS_PARAM_RANGES.lightElevation.min,
-      GLASS_PARAM_RANGES.lightElevation.max,
-      DEFAULT_GLASS_PARAMS.lightElevation
-    ),
-    lightIntensity: clampNumber(
-      input.lightIntensity,
-      GLASS_PARAM_RANGES.lightIntensity.min,
-      GLASS_PARAM_RANGES.lightIntensity.max,
-      DEFAULT_GLASS_PARAMS.lightIntensity
-    ),
-    ribCount: clampNumber(input.ribCount, GLASS_PARAM_RANGES.ribCount.min, GLASS_PARAM_RANGES.ribCount.max, DEFAULT_GLASS_PARAMS.ribCount),
-    ribOrientation: RIB_ORIENTATIONS.includes(input.ribOrientation as (typeof RIB_ORIENTATIONS)[number])
+    ribOrientation: RIB_ORIENTATIONS.includes(input.ribOrientation as GlassParams["ribOrientation"])
       ? (input.ribOrientation as GlassParams["ribOrientation"])
       : DEFAULT_GLASS_PARAMS.ribOrientation,
-    ribRefraction: clampNumber(
-      input.ribRefraction,
-      GLASS_PARAM_RANGES.ribRefraction.min,
-      GLASS_PARAM_RANGES.ribRefraction.max,
-      DEFAULT_GLASS_PARAMS.ribRefraction
-    ),
-    ribReflection: clampNumber(
-      input.ribReflection,
-      GLASS_PARAM_RANGES.ribReflection.min,
-      GLASS_PARAM_RANGES.ribReflection.max,
-      DEFAULT_GLASS_PARAMS.ribReflection
-    ),
-    tintColor: typeof input.tintColor === "string" && HEX_COLOR_PATTERN.test(input.tintColor) ? input.tintColor : DEFAULT_GLASS_PARAMS.tintColor,
-    tintOpacity: clampNumber(
-      input.tintOpacity,
-      GLASS_PARAM_RANGES.tintOpacity.min,
-      GLASS_PARAM_RANGES.tintOpacity.max,
-      DEFAULT_GLASS_PARAMS.tintOpacity
-    ),
-    chromaticAberration: clampNumber(
-      input.chromaticAberration,
-      GLASS_PARAM_RANGES.chromaticAberration.min,
-      GLASS_PARAM_RANGES.chromaticAberration.max,
-      DEFAULT_GLASS_PARAMS.chromaticAberration
-    ),
+    noiseType: NOISE_TYPES.includes(input.noiseType as GlassParams["noiseType"])
+      ? (input.noiseType as GlassParams["noiseType"])
+      : DEFAULT_GLASS_PARAMS.noiseType,
     backgroundImage: sanitizeBackgroundImage(input.backgroundImage),
   };
 }

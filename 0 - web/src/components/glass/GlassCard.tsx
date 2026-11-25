@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import GlassPanel from "@/components/glass/GlassPanel";
-import { GLASS_SCENE_PADDING, type GlassParams } from "@/glass/types";
+import type { GlassParams } from "@/glass/types";
 
 const CARD_WIDTH = 280;
 const CARD_HEIGHT = 200;
@@ -12,8 +12,8 @@ type GlassCardProps = {
 };
 
 export default function GlassCard({ name, params }: GlassCardProps) {
-  const sceneWidth = params.width + GLASS_SCENE_PADDING * 2;
-  const sceneHeight = params.height + GLASS_SCENE_PADDING * 2;
+  const sceneWidth = params.width + params.scenePadding * 2;
+  const sceneHeight = params.height + params.scenePadding * 2;
   // Uniform scale-to-fit: never stretches, so the glass keeps its true width/height ratio.
   const scale = Math.min(CARD_WIDTH / sceneWidth, CARD_HEIGHT / sceneHeight, 1);
 
